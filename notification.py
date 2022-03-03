@@ -8,6 +8,8 @@ async def check_coins(user_id):
     current_price_dict = {}
     while True:
         alerts = await db.get_alert(user_id)
+        if len(alerts) == 0:
+            asyncio.Task.cancel(asyncio.current_task())
         tickers = set([ticker[1] for ticker in alerts])
         for ticker in tickers:
             current_price_dict[ticker] = (await get_coin_data(ticker))['quotes']['USD']['price']

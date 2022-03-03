@@ -1,13 +1,19 @@
-import asyncio
 import json
-from create_bot import bot, db
+import asyncio
+
+from typing import Union
+
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
-from coin_data.py import get_ticker, get_coin_data
-from notification import check_coins
 from aiogram.dispatcher.filters.state import State, StatesGroup
+
+from notification import check_coins
+from create_bot import bot, db, dp
+from coin_data.py import get_ticker, get_coin_data
 from keyboards import main_keyboard, alert_keyboard, cancel_keyboard
+
+from telegram_bot_pagination import InlineKeyboardPaginator, InlineKeyboardButton
 
 
 class AlertForm(StatesGroup):
@@ -62,19 +68,55 @@ async def set_coin_price(message: types.Message, state: FSMContext):
 
 
 async def show_alerts(message: types.Message):
-    alerts = await db.show_alerts(message.from_user.id)
-    if alerts is None:
-        await message.answer("No alert added")
+    await list_alerts(message, message.chat.id)
+
+
+@dp.callback_query_handler(lambda callback: callback.data.split('#')[0] == 'elements', state='*')
+async def characters_page_callback(call: types.CallbackQuery):
+    page = int(call.data.split('#')[1])
+    await bot.delete_message(
+        call.message.chat.id,
+        call.message.message_id
+    )
+    await list_alerts(call, call.message.chat.id, page)
+    await call.answer()
+
+
+@dp.callback_query_handler(lambda callback: callback.data == 'delete alert', state='*')
+async def delete_alert_callback(call: types.CallbackQuery):
+    callback_text = call.message.text.split('\n\n')
+    coin = callback_text[0].split()[1]
+    price = callback_text[1].split()[1].replace('$', '')
+    await db.delete_alert([call.message.chat.id, coin, price])
+    await bot.delete_message(
+        call.message.chat.id,
+        call.message.message_id
+    )
+    await call.answer(f'The ${price} {coin} alert has been deleted!')
+    print(1)
+    await list_alerts(call, call.message.chat.id)
+    await call.answer()
+
+
+async def list_alerts(message: Union[types.Message, types.CallbackQuery], chat_id, page=1):
+    pages = await db.show_alerts(message.from_user.id)
+    if len(pages) == 0:
+        await bot.send_message(chat_id, 'There is no alert!')
     else:
-        await message.answer(alerts)
-
-
-def isfloat(message):
-    try:
-        float(message)
-        return True
-    except:
-        return False
+        paginator = InlineKeyboardPaginator(
+            len(pages),
+            current_page=page,
+            data_pattern='elements#{page}'
+        )
+        paginator.add_before(InlineKeyboardButton('Delete alert', callback_data='delete alert'))
+        coin = pages[page - 1]
+        text = f"Symbol: {coin[0]}\n\nPrice: ${coin[1]}"
+        await bot.send_message(
+            chat_id,
+            text,
+            reply_markup=paginator.markup,
+            parse_mode='Markdown'
+        )
 
 
 def register_alert_handler(dispatcher: Dispatcher):
@@ -93,3 +135,11 @@ def register_alert_handler(dispatcher: Dispatcher):
     dispatcher.register_message_handler(set_coin_price, state=AlertForm.coin_price)
 
     dispatcher.register_message_handler(show_alerts, Text(equals='🗂 Show alerts', ignore_case=True))
+
+
+def isfloat(message):
+    try:
+        float(message)
+        return True
+    except:
+        return False

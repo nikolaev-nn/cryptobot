@@ -48,7 +48,7 @@ class DataBase:
         return list(self.con.execute(f"select coin_name, price from coins where user_id={user_id};"))
 
     async def get_users_id(self):
-        return list(self.con.execute(f"select id from users;"))
+        return list(self.con.execute(f"select user_id from coins;"))
 
     async def drop_tables(self):
         self.con.execute(""" drop table coins; """)
@@ -58,4 +58,4 @@ class DataBase:
 
 if __name__ == '__main__':
     db = DataBase(path='bot.sqlite')
-    asyncio.run(db.drop_tables())
+    asyncio.run(db.select_items())
