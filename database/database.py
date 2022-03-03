@@ -26,7 +26,7 @@ class DataBase:
         print(list(self.con.execute('select * from coins')))
 
     async def create_request(self, request):
-        print(list(self.con.execute(request)))
+        self.con.execute(request)
         self.con.commit()
 
     async def add_user(self, user_info):

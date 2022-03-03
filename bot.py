@@ -2,9 +2,10 @@ import asyncio
 from aiogram import types
 from create_bot import dp, bot, db
 from aiogram.utils import executor
+
 from keyboards import main_keyboard
 from notification import check_coins
-from handlers import coin_price, price_alert, fear_and_greed
+from handlers import coin_price, price_alert, fear_and_greed, funding_rates
 
 
 async def on_startup(_):
@@ -24,6 +25,7 @@ async def start_func(message: types.Message):
 coin_price.register_price_handler(dp)
 fear_and_greed.register_fear_handler(dp)
 price_alert.register_alert_handler(dp)
+funding_rates.register_funding_rates_handler(dp)
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True, on_startup=on_startup)

@@ -24,7 +24,7 @@ async def cancel_handler(message: types.Message, state: FSMContext):
 async def get_coin_price(message: types.Message):
     value = await get_crypto_curr(message.text)
     if value == KeyError:
-        await bot.send_message(message.chat.id, 'Currency not found. Check if you entered the coin_data correctly.')
+        await bot.send_message(message.chat.id, 'Currency not found. Check if you entered the currency name correctly.')
     else:
         result = await create_text(message.text.upper(), value)
         text = result[0]
@@ -33,7 +33,7 @@ async def get_coin_price(message: types.Message):
     await PriceForm.coin.set()
 
 
-@dp.callback_query_handler(lambda callback: callback.data == 'refresh', state='*')
+@dp.callback_query_handler(lambda callback: callback.data == 'refresh info', state='*')
 async def refresh_callback(callback: types.CallbackQuery):
     coin_symbol = callback.message.text.split('\n')[0].split()[-1]
     value = await get_crypto_curr(coin_symbol)
@@ -54,7 +54,7 @@ async def refresh_callback(callback: types.CallbackQuery):
 
 async def create_text(message, value):
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup_item = types.InlineKeyboardButton(text="Refresh 🔁", callback_data="refresh")
+    markup_item = types.InlineKeyboardButton(text="Refresh 🔁", callback_data="refresh info")
     markup.add(markup_item)
     text = f"Symbol: {message} \n\n" \
            f"Rank: {value['rank']} \n\n" \
@@ -69,5 +69,4 @@ async def create_text(message, value):
 def register_price_handler(dispatcher: Dispatcher):
     dispatcher.register_message_handler(command_start, Text(equals='coin price 💰', ignore_case=True), state=None)
     dispatcher.register_message_handler(cancel_handler, Text(equals='❌ cancel', ignore_case=True), state='*')
-    # dispatcher.register_message_handler(refresh_callback, lambda callback: callback.data == 'refresh', state='*')
     dispatcher.register_message_handler(get_coin_price, state=PriceForm.coin)

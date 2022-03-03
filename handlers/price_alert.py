@@ -58,7 +58,6 @@ async def set_coin_price(message: types.Message, state: FSMContext):
         if str(message.chat.id) not in tasks:
             user_id = message.chat.id
             asyncio.Task(check_coins(user_id)).set_name(user_id)
-        print(len(asyncio.all_tasks()))
     await state.finish()
 
 
