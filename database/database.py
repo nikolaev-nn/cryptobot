@@ -16,6 +16,7 @@ class DataBase:
                                 coin_ticker varchar(30),
                                 price decimal(38,16),
                                 last_price decimal(38,16),
+                                market varchar(50),
                                 user_id int,
                                 foreign key (id) references users(id)
                             );''')
@@ -34,26 +35,26 @@ class DataBase:
         self.con.commit()
 
     async def save_alert(self, alert_info):
-        self.con.execute("INSERT INTO coins(coin_name, coin_ticker, price, last_price, user_id) VALUES (?, ?, ?, ?, ?);", tuple(alert_info.values()))
+        self.con.execute("INSERT INTO coins(coin_name, coin_ticker, price, last_price, market, user_id) VALUES (?, ?, ?, ?, ?, ?);", tuple(alert_info.values()))
         self.con.commit()
 
     async def get_alert(self, user_id):
-        return list(self.con.execute(f"select coin_name, coin_ticker, price, last_price from coins where user_id={user_id};"))
+        return list(self.con.execute(f"select coin_name, coin_ticker, price, last_price, market from coins where user_id={user_id};"))
 
     async def delete_alert(self, alert_info):
-        self.con.execute("delete from coins where (user_id = ? and coin_name = ? and price = ?);", tuple(alert_info))
+        self.con.execute("delete from coins where (user_id = ? and coin_name = ? and price = ? and market = ?);", tuple(alert_info))
         self.con.commit()
 
     async def show_alerts(self, user_id):
-        return list(self.con.execute(f"select coin_name, price from coins where user_id={user_id};"))
+        return list(self.con.execute(f"select coin_name, price, market from coins where user_id={user_id};"))
 
     async def get_users_id(self):
         return list(self.con.execute(f"select user_id from coins;"))
 
     async def drop_tables(self):
         self.con.execute(""" drop table coins; """)
-        self.con.commit()
         # self.con.execute(""" drop table users;""")
+        self.con.commit()
 
 
 if __name__ == '__main__':

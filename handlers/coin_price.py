@@ -59,7 +59,7 @@ async def create_text(message, value):
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup_item = types.InlineKeyboardButton(text="Refresh 🔁", callback_data="refresh info")
     markup.add(markup_item)
-    links = json.load(open('./coin_data/templates/crypto_currencies.json'))
+    links = json.load(open('./coin_data/templates/coin_symbols/crypto_currencies.json'))
     try:
         link = f"{(links[message]['link'])}"
     except:

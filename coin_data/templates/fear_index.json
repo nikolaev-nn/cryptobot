@@ -1,18 +1,18 @@
 {
    "Now": {
-      "status": "Neutral",
-      "num": "52"
+      "status": "Fear",
+      "num": "33"
    },
    "Yesterday": {
-      "status": "Neutral",
-      "num": "51"
+      "status": "Fear",
+      "num": "39"
    },
    "Last week": {
-      "status": "Extreme Fear",
-      "num": "25"
+      "status": "Fear",
+      "num": "27"
    },
    "Last month": {
-      "status": "Extreme Fear",
-      "num": "20"
+      "status": "Fear",
+      "num": "28"
    }
 }

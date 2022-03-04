@@ -10,7 +10,7 @@ from handlers import coin_price, price_alert, fear_and_greed, funding_rates
 
 async def on_startup(_):
     print('Bot is online!')
-    users_id = await db.get_users_id()
+    users_id = set(await db.get_users_id())
     for user_id in users_id:
         asyncio.Task(check_coins(user_id[0])).set_name(user_id[0])
 

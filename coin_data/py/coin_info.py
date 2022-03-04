@@ -14,12 +14,12 @@ async def get_coin_symbols():
     symbols_dict = {}
     for coin in coins_json:
         symbols_dict[coin['id']] = coin['symbol']
-    with open(path.join(direction, '../templates/coin_names.json'), 'w') as file:
+    with open(path.join(direction, '../templates/coin_symbols/coin_names.json'), 'w') as file:
         json.dump(symbols_dict, file, indent=3)
 
 
 async def get_ticker(currency):
-    with open(path.join(direction, '../templates/coin_names.json'), 'r') as file:
+    with open(path.join(direction, '../templates/coin_symbols/coin_names.json'), 'r') as file:
         coins_data = json.load(file)
         for coin, value in coins_data.items():
             if currency.upper() == value:
