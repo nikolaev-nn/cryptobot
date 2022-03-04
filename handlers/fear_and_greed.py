@@ -2,10 +2,11 @@ import os
 import json
 import time
 import pytz
-from create_bot import bot
+from create_bot import bot, chat_id
 from datetime import datetime
 from aiogram import Dispatcher, types
 from coin_data.py import get_crypto_fear
+from coin_data.py import get_member_status
 from aiogram.dispatcher.filters import Text
 
 
@@ -16,23 +17,25 @@ DATE = current_d
 
 
 async def send_fear_message(message: types.Message):
-    try:
-        img = open(f'coin_data/{DATE} fear.png', 'rb')
-    except Exception:
-        await update_fear_index()
-        img = open(f'./coin_data/templates/{DATE} fear.png', 'rb')
-    fear_data = json.load(open('./coin_data/templates/fear_index.json', 'r'))
-    emoji = json.load(open("./coin_data/templates/fear_emoji.json", "rb"))
-    current_time = time.localtime()
-    time_string1 = time.strftime("%Y/%d/%m", current_time)
+    user_status = await get_member_status(message)
+    if user_status:
+        try:
+            img = open(f'coin_data/{DATE} fear.png', 'rb')
+        except Exception:
+            await update_fear_index()
+            img = open(f'./coin_data/templates/{DATE} fear.png', 'rb')
+        fear_data = json.load(open('./coin_data/templates/fear_index.json', 'r'))
+        emoji = json.load(open("./coin_data/templates/fear_emoji.json", "rb"))
+        current_time = time.localtime()
+        time_string1 = time.strftime("%Y/%d/%m", current_time)
 
-    text = f'🚦 Fear & Greed Index Historical Values\n\n' \
-           f'{emoji[fear_data["Now"]["status"]]} Now:                   {fear_data["Now"]["num"]} - {fear_data["Now"]["status"]}\n\n' \
-           f'{emoji[fear_data["Yesterday"]["status"]]} Yesterday:         {fear_data["Yesterday"]["num"]} - {fear_data["Yesterday"]["status"]}\n\n' \
-           f'{emoji[fear_data["Last week"]["status"]]} Last week:          {fear_data["Last week"]["num"]} - {fear_data["Last week"]["status"]}\n\n' \
-           f'{emoji[fear_data["Last month"]["status"]]} Last month:       {fear_data["Last month"]["num"]} - {fear_data["Last month"]["status"]}\n\n 📆 Last updated:   {time_string1} \n\n'
+        text = f'🚦 Fear & Greed Index Historical Values\n\n' \
+               f'{emoji[fear_data["Now"]["status"]]} Now:                   {fear_data["Now"]["num"]} - {fear_data["Now"]["status"]}\n\n' \
+               f'{emoji[fear_data["Yesterday"]["status"]]} Yesterday:         {fear_data["Yesterday"]["num"]} - {fear_data["Yesterday"]["status"]}\n\n' \
+               f'{emoji[fear_data["Last week"]["status"]]} Last week:          {fear_data["Last week"]["num"]} - {fear_data["Last week"]["status"]}\n\n' \
+               f'{emoji[fear_data["Last month"]["status"]]} Last month:       {fear_data["Last month"]["num"]} - {fear_data["Last month"]["status"]}\n\n 📆 Last updated:   {time_string1} \n\n'
 
-    await bot.send_photo(message.chat.id, img, text)
+        await bot.send_photo(message.chat.id, img, text)
 
 
 async def update_fear_index():

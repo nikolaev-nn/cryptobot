@@ -1,5 +1,7 @@
 import json
-from create_bot import bot, dp
+
+from coin_data.py import get_member_status
+from create_bot import bot, dp, chat_id
 from aiogram.types import ParseMode
 from aiogram import Dispatcher, types
 from coin_data.py import get_crypto_curr
@@ -14,25 +16,31 @@ class PriceForm(StatesGroup):
 
 
 async def command_start(message: types.Message):
-    await bot.send_message(message.chat.id, 'Enter the name of the currency in the format BTC, ETH, BNB, LTC', reply_markup=cancel_keyboard)
-    await PriceForm.coin.set()
+    user_status = await get_member_status(message)
+    if user_status:
+        await bot.send_message(message.chat.id, 'Enter the name of the currency in the format BTC, ETH, BNB, LTC', reply_markup=cancel_keyboard)
+        await PriceForm.coin.set()
 
 
 async def cancel_handler(message: types.Message, state: FSMContext):
-    await state.finish()
-    await bot.send_message(message.chat.id, "Let's start from the beginning 😌", reply_markup=main_keyboard)
+    user_status = await get_member_status(message)
+    if user_status:
+        await state.finish()
+        await bot.send_message(message.chat.id, "Let's start from the beginning 😌", reply_markup=main_keyboard)
 
 
 async def get_coin_price(message: types.Message):
-    value = await get_crypto_curr(message.text)
-    if value == KeyError:
-        await bot.send_message(message.chat.id, 'Currency not found. Check if you entered the currency name correctly.')
-    else:
-        result = await create_text(message.text.upper(), value)
-        text = result[0]
-        inline_keyboard = result[1]
-        await bot.send_message(message.chat.id, text, reply_markup=inline_keyboard, parse_mode=ParseMode.HTML)
-    await PriceForm.coin.set()
+    user_status = await get_member_status(message)
+    if user_status:
+        value = await get_crypto_curr(message.text)
+        if value == KeyError:
+            await bot.send_message(message.chat.id, 'Currency not found. Check if you entered the currency name correctly.')
+        else:
+            result = await create_text(message.text.upper(), value)
+            text = result[0]
+            inline_keyboard = result[1]
+            await bot.send_message(message.chat.id, text, reply_markup=inline_keyboard, parse_mode=ParseMode.HTML)
+        await PriceForm.coin.set()
 
 
 @dp.callback_query_handler(lambda callback: callback.data == 'refresh info', state='*')

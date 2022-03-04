@@ -6,10 +6,12 @@ import requests
 
 async def get_funding_rates(ticker):
     rates = await get_coin_data()
-    for rate in rates:
-        if ticker == rate['symbol']:
-            return {i["exchangeName"]: {"rate": i["rate"], "emoji": "🟢" if i["rate"] >= 0 else "🔴"} for i in rate["uMarginList"]}
-    return KeyError
+    try:
+        for rate in rates:
+            if ticker == rate['symbol']:
+                return {i["exchangeName"]: {"rate": i["rate"], "emoji": "🟢" if i["rate"] >= 0 else "🔴"} for i in rate["uMarginList"]}
+    except:
+        return KeyError
 
 
 async def get_coin_data():

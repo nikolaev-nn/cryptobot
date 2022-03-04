@@ -1,5 +1,7 @@
 import asyncio
-from create_bot import db
+
+from coin_data.py import get_member_status
+from create_bot import db, chat_id
 from create_bot import bot
 from coin_data.py import get_coinpaprika, get_coinex, get_binance, get_bybit, get_gate, get_ftx, get_mexc, get_kucoin
 
@@ -29,10 +31,14 @@ async def check_coins(user_id):
             ticker = alert[coin_type]
             current_price_dict[ticker] = (await market_dict[market]['method'](ticker))
             if alert[3] < alert[2] < current_price_dict[ticker] or alert[3] > alert[2] > current_price_dict[ticker]:
-                await bot.send_message(user_id, f'The price of {alert[0]} has reached ${alert[2]}')
-                await db.delete_alert([user_id, alert[0], alert[2], market])
+                user_status = await get_member_status(user_id)
+                if user_status == 'excluded':
+                    asyncio.Task.cancel(asyncio.current_task())
+                elif user_status:
+                    await bot.send_message(user_id, f'The price of {alert[0]} has reached ${alert[2]}')
+                    await db.delete_alert([user_id, alert[0], alert[2], market])
 
-        await asyncio.sleep(150)
+        await asyncio.sleep(30)
 
 
 if __name__ == "__main__":

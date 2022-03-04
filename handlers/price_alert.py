@@ -1,6 +1,7 @@
 import json
 import asyncio
 import os
+import pickle
 
 from typing import Union
 
@@ -10,8 +11,9 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
+from coin_data.py import get_member_status
 from notification import check_coins
-from create_bot import bot, db, dp
+from create_bot import bot, db, dp, chat_id
 from coin_data.py import get_ticker, get_coin_data
 from keyboards import main_keyboard, alert_keyboard, cancel_keyboard, market_buttons, cancel_btn
 
@@ -28,22 +30,26 @@ class AlertForm(StatesGroup):
 async def cancel_handler(message: Union[types.Message, types.CallbackQuery], state: FSMContext):
     await state.finish()
     if type(message) == types.Message:
-        chat_id = message.chat.id
+        chat_id_2 = message.chat.id
     else:
-        chat_id = message.message.chat.id
+        chat_id_2 = message.message.chat.id
         message_id = message.message.message_id
-        await bot.delete_message(chat_id, message_id)
-    await bot.send_message(chat_id, "Let's start from the beginning 😌", reply_markup=main_keyboard)
+        await bot.delete_message(chat_id_2, message_id)
+    await bot.send_message(chat_id_2, "Let's start from the beginning 😌", reply_markup=main_keyboard)
     await message.answer()
 
 
 async def select_alert(message: types.Message):
-    await bot.send_message(message.chat.id, "Select:", reply_markup=alert_keyboard)
+    user_status = await get_member_status(message)
+    if user_status:
+        await bot.send_message(message.chat.id, "Select:", reply_markup=alert_keyboard)
 
 
 async def create_alert(message: types.message):
-    await AlertForm.coin_name.set()
-    await bot.send_message(message.chat.id, 'Type the name of the currency (BTC, ETH, BNB)', reply_markup=cancel_keyboard)
+    user_status = await get_member_status(message)
+    if user_status:
+        await AlertForm.coin_name.set()
+        await bot.send_message(message.chat.id, 'Type the name of the currency (BTC, ETH, BNB)', reply_markup=cancel_keyboard)
 
 
 async def set_coin_name_invalid(message: types.Message):
@@ -51,12 +57,14 @@ async def set_coin_name_invalid(message: types.Message):
 
 
 async def set_coin_name(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        data['coin_name'] = message.text.upper()
-        data['coin_ticker'] = await get_ticker(message.text.upper())
-    await AlertForm.next()
-    await bot.send_message(message.chat.id, 'Enter the price at which the bot will notify you.'
-                                            '\n\nIf the number is not an integer, then enter it separated by a dot. For example:\n\n- 0.2\n- 10.5\n- 8.40')
+    user_status = await get_member_status(message)
+    if user_status:
+        async with state.proxy() as data:
+            data['coin_name'] = message.text.upper()
+            data['coin_ticker'] = await get_ticker(message.text.upper())
+        await AlertForm.next()
+        await bot.send_message(message.chat.id, 'Enter the price at which the bot will notify you.'
+                                                '\n\nIf the number is not an integer, then enter it separated by a dot. For example:\n\n- 0.2\n- 10.5\n- 8.40')
 
 
 async def set_coin_price_invalid(message: types.Message):
@@ -64,12 +72,14 @@ async def set_coin_price_invalid(message: types.Message):
 
 
 async def set_coin_price(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        data['coin_price'] = message.text
-        data['last_price'] = (await get_coin_data(data['coin_ticker']))['quotes']['USD']['price']
-        keyboard = await create_market_keyboard(get_markets(data['coin_name']))
-        await bot.send_message(message.chat.id, f"Now choose coin market", reply_markup=keyboard)
-    await AlertForm.next()
+    user_status = await get_member_status(message)
+    if user_status:
+        async with state.proxy() as data:
+            data['coin_price'] = message.text
+            data['last_price'] = (await get_coin_data(data['coin_ticker']))['quotes']['USD']['price']
+            keyboard = await create_market_keyboard(get_markets(data['coin_name']))
+            await bot.send_message(message.chat.id, f"Now choose coin market", reply_markup=keyboard)
+        await AlertForm.next()
 
 
 @dp.callback_query_handler(lambda callback: callback.data.lower() in ['binance', 'coinex', 'bybit', 'kucoin', 'mexc', 'ftx', 'gate', 'default'], state=AlertForm.market)
@@ -90,7 +100,9 @@ async def set_market(call: types.CallbackQuery, state: FSMContext):
 
 
 async def show_alerts(message: types.Message):
-    await list_alerts(message, message.chat.id)
+    user_status = await get_member_status(message)
+    if user_status:
+        await list_alerts(message, message.chat.id)
 
 
 @dp.callback_query_handler(lambda callback: callback.data.split('#')[0] == 'elements', state='*')
@@ -120,10 +132,10 @@ async def delete_alert_callback(call: types.CallbackQuery):
     await call.answer()
 
 
-async def list_alerts(message: Union[types.Message, types.CallbackQuery], chat_id, page=1):
+async def list_alerts(message: Union[types.Message, types.CallbackQuery], chat_id_2, page=1):
     pages = await db.show_alerts(message.from_user.id)
     if len(pages) == 0:
-        await bot.send_message(chat_id, 'There is no alert!')
+        await bot.send_message(chat_id_2, 'There is no alert!')
     else:
         paginator = InlineKeyboardPaginator(
             len(pages),
@@ -134,7 +146,7 @@ async def list_alerts(message: Union[types.Message, types.CallbackQuery], chat_i
         coin_info = pages[page - 1]
         text = f"Symbol: {coin_info[0]}\n\nPrice: ${coin_info[1]:,}\n\nMarket: {coin_info[2]}"
         await bot.send_message(
-            chat_id,
+            chat_id_2,
             text,
             reply_markup=paginator.markup,
             parse_mode='Markdown'
@@ -161,7 +173,8 @@ def get_markets(coin_name):
             if coin_name in json.load(open(f'{direction}{file}', 'r')).values():
                 markets.append('Default')
         elif '.pkl' in file:
-            markets.append(file.split('.')[0])
+            if coin_name in pickle.load(open(f'{direction}{file}', 'rb')):
+                markets.append(file.split('.')[0])
     return markets
 
 

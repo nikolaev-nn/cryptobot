@@ -7,3 +7,4 @@ from database import DataBase
 db = DataBase()
 bot = Bot(token=open('token.txt').readline())
 dp = Dispatcher(bot, storage=MemoryStorage())
+chat_id = '@asdfghjklasdfgdsghj'

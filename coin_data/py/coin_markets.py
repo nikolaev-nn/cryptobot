@@ -98,10 +98,10 @@ async def get_gate(ticker, sym=False, path='coin_data'):
 
 
 if __name__ == '__main__':
-    t = 'BTC'
+    t = 'TON'
     s = False
     p = '..'
-    print(asyncio.run(get_coinpaprika('btc-bitcoin')))
+    # print(asyncio.run(get_coinpaprika('btc-bitcoin')))
     print(asyncio.run(get_coinex(t, s, p)))
     print(asyncio.run(get_binance(t, s, p)))
     print(asyncio.run(get_bybit(t, s, p)))
